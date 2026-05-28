@@ -32,6 +32,11 @@
 #include "sl_bluetooth.h"
 #include "app.h"
 #include "app_log.h"
+#include "sl_sensor_rht.h"
+#include "temperature.h"
+#include "gatt_db.h"
+#include <stdint.h>
+
 
 // The advertising set handle allocated from Bluetooth stack.
 static uint8_t advertising_set_handle = 0xff;
@@ -102,6 +107,9 @@ void sl_bt_on_event(sl_bt_msg_t *evt)
     // This event indicates that a new connection was opened.
     case sl_bt_evt_connection_opened_id:
       app_log_info("%s: connection_opened!\n", __FUNCTION__);
+      sl_sensor_rht_init();
+      app_log_info("Init capteur temperature\n");
+      app_log_info(" valeur de la temperature : %.2f \n",calc_temp());
       break;
 
     // -------------------------------
@@ -117,10 +125,19 @@ void sl_bt_on_event(sl_bt_msg_t *evt)
       sc = sl_bt_legacy_advertiser_start(advertising_set_handle,
                                          sl_bt_legacy_advertiser_connectable);
       app_assert_status(sc);
+
+      sl_sensor_rht_deinit();
+      app_log_info("DeInit capteur temperature\n");
+
       break;
 
     ///////////////////////////////////////////////////////////////////////////
-    // Add additional event handlers here as your application requires!      //
+    case sl_bt_evt_gatt_server_user_read_request_id:
+      if (evt->data.evt_gatt_server_user_read_request.characteristic == gattdb_temperature){
+          app_log_info(" id caracteristique temperature = %d \n",evt->data.evt_gatt_server_user_read_request.characteristic);
+          app_sendTemperature(evt->data.evt_gatt_server_user_read_request.connection);
+      }
+      break;
     ///////////////////////////////////////////////////////////////////////////
 
     // -------------------------------
@@ -128,4 +145,19 @@ void sl_bt_on_event(sl_bt_msg_t *evt)
     default:
       break;
   }
+}
+
+void app_sendTemperature(uint8_t connection_id){
+  int16_t valTemp=get_valTempFinal()*100;//mutiplier par 100 -> standard BLE
+  uint8_t valTempToSend[2];
+  valTempToSend[0]= valTemp&0x00ff;
+  valTempToSend[1]= (valTemp>>8)&0xff;
+  size_t lenVal= sizeof(valTempToSend);
+  sl_bt_gatt_server_send_user_read_response(connection_id,
+                                            gattdb_temperature,
+                                            0,
+                                            lenVal,
+                                            valTempToSend,
+                                            (uint16_t*)&lenVal
+                                            );
 }

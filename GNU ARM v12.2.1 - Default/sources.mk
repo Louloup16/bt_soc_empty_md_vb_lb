@@ -19,6 +19,8 @@ SUBDIRS := \
 . \
 autogen \
 gecko_sdk_4.5.0/app/bluetooth/common/in_place_ota_dfu \
+gecko_sdk_4.5.0/app/bluetooth/common/sensor_rht \
+gecko_sdk_4.5.0/app/bluetooth/common/sensor_select \
 gecko_sdk_4.5.0/app/common/util/app_log \
 gecko_sdk_4.5.0/app/common/util/app_timer \
 gecko_sdk_4.5.0/hardware/board/src \
