@@ -1,9 +1,9 @@
 /***************************************************************************//**
  * @file
- * @brief Application interface provided to main().
+ * @brief LED Driver Instances
  *******************************************************************************
  * # License
- * <b>Copyright 2020 Silicon Laboratories Inc. www.silabs.com</b>
+ * <b>Copyright 2019 Silicon Laboratories Inc. www.silabs.com</b>
  *******************************************************************************
  *
  * SPDX-License-Identifier: Zlib
@@ -28,32 +28,30 @@
  *
  ******************************************************************************/
 
-#ifndef APP_H
-#define APP_H
+#include "sl_simple_led.h"
+#include "em_gpio.h"
+#include "sl_simple_led_led0_config.h"
 
-#include <stdint.h>
-#include "sl_sleeptimer.h"
-#include "sl_bgapi.h"
-#include "sl_bt_api.h"
+sl_simple_led_context_t simple_led0_context = {
+  .port = SL_SIMPLE_LED_LED0_PORT,
+  .pin = SL_SIMPLE_LED_LED0_PIN,
+  .polarity = SL_SIMPLE_LED_LED0_POLARITY,
+};
 
-/**************************************************************************//**
- * Application Init.
- *****************************************************************************/
-void app_init(void);
+const sl_led_t sl_led_led0 = {
+  .context = &simple_led0_context,
+  .init = sl_simple_led_init,
+  .turn_on = sl_simple_led_turn_on,
+  .turn_off = sl_simple_led_turn_off,
+  .toggle = sl_simple_led_toggle,
+  .get_state = sl_simple_led_get_state,
+};
 
-/**************************************************************************//**
- * Application Process Action.
- *****************************************************************************/
-void app_process_action(void);
+const sl_led_t *sl_simple_led_array[] = {
+  &sl_led_led0
+};
 
-void app_sendTemperature(uint8_t connection_id,bool funcToCall);
-
-void sl_sleeptimer_timer_callback(sl_sleeptimer_timer_handle_t *handle, void *data);
-
-void app_sendDigitalIO(uint8_t connection_id);
-
-uint8_t app_RecupDataIO(uint8array *Val);
-
-void app_updateVersionLedIO(sl_bt_msg_t *evt,char version);
-
-#endif // APP_H
+void sl_simple_led_init_instances(void)
+{
+  sl_led_init(&sl_led_led0);
+}

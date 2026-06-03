@@ -1,9 +1,9 @@
 /***************************************************************************//**
  * @file
- * @brief Application interface provided to main().
+ * @brief Simple Led Driver Configuration
  *******************************************************************************
  * # License
- * <b>Copyright 2020 Silicon Laboratories Inc. www.silabs.com</b>
+ * <b>Copyright 2019 Silicon Laboratories Inc. www.silabs.com</b>
  *******************************************************************************
  *
  * SPDX-License-Identifier: Zlib
@@ -28,32 +28,33 @@
  *
  ******************************************************************************/
 
-#ifndef APP_H
-#define APP_H
+#ifndef SL_SIMPLE_LED_LED0_CONFIG_H
+#define SL_SIMPLE_LED_LED0_CONFIG_H
 
-#include <stdint.h>
-#include "sl_sleeptimer.h"
-#include "sl_bgapi.h"
-#include "sl_bt_api.h"
+// <<< Use Configuration Wizard in Context Menu >>>
 
-/**************************************************************************//**
- * Application Init.
- *****************************************************************************/
-void app_init(void);
+// <h> Simple LED configuration
+// <o SL_SIMPLE_LED_LED0_POLARITY>
+// <SL_SIMPLE_LED_POLARITY_ACTIVE_LOW=> Active low
+// <SL_SIMPLE_LED_POLARITY_ACTIVE_HIGH=> Active high
+// <i> Default: SL_SIMPLE_LED_POLARITY_ACTIVE_HIGH
+#define SL_SIMPLE_LED_LED0_POLARITY SL_SIMPLE_LED_POLARITY_ACTIVE_HIGH
+// </h> end led configuration
 
-/**************************************************************************//**
- * Application Process Action.
- *****************************************************************************/
-void app_process_action(void);
+// <<< end of configuration section >>>
 
-void app_sendTemperature(uint8_t connection_id,bool funcToCall);
+// <<< sl:start pin_tool >>>
 
-void sl_sleeptimer_timer_callback(sl_sleeptimer_timer_handle_t *handle, void *data);
+// <gpio> SL_SIMPLE_LED_LED0
+// $[GPIO_SL_SIMPLE_LED_LED0]
+#ifndef SL_SIMPLE_LED_LED0_PORT                 
+#define SL_SIMPLE_LED_LED0_PORT                  gpioPortD
+#endif
+#ifndef SL_SIMPLE_LED_LED0_PIN                  
+#define SL_SIMPLE_LED_LED0_PIN                   8
+#endif
+// [GPIO_SL_SIMPLE_LED_LED0]$
 
-void app_sendDigitalIO(uint8_t connection_id);
+// <<< sl:end pin_tool >>>
 
-uint8_t app_RecupDataIO(uint8array *Val);
-
-void app_updateVersionLedIO(sl_bt_msg_t *evt,char version);
-
-#endif // APP_H
+#endif // SL_SIMPLE_LED_LED0_CONFIG_H

@@ -36,11 +36,20 @@
 #include "temperature.h"
 #include "gatt_db.h"
 #include <stdint.h>
+#include "sl_sleeptimer.h"
+#include "sl_simple_led_instances.h"
+#include "sl_bgapi.h"
+
+
+#define TEMPERATURE_TIMER_SIGNAL (1<<0)
 
 
 // The advertising set handle allocated from Bluetooth stack.
 static uint8_t advertising_set_handle = 0xff;
 
+static sl_sleeptimer_timer_handle_t handleTimer;
+static int timerData=0;
+static uint8_t connection_id=0;
 /**************************************************************************//**
  * Application Init.
  *****************************************************************************/
@@ -107,6 +116,7 @@ void sl_bt_on_event(sl_bt_msg_t *evt)
     // This event indicates that a new connection was opened.
     case sl_bt_evt_connection_opened_id:
       app_log_info("%s: connection_opened!\n", __FUNCTION__);
+      sl_simple_led_init_instances();
       sl_sensor_rht_init();
       app_log_info("Init capteur temperature\n");
       app_log_info(" valeur de la temperature : %.2f \n",calc_temp());
@@ -135,7 +145,44 @@ void sl_bt_on_event(sl_bt_msg_t *evt)
     case sl_bt_evt_gatt_server_user_read_request_id:
       if (evt->data.evt_gatt_server_user_read_request.characteristic == gattdb_temperature){
           app_log_info(" id caracteristique temperature = %d \n",evt->data.evt_gatt_server_user_read_request.characteristic);
-          app_sendTemperature(evt->data.evt_gatt_server_user_read_request.connection);
+          app_sendTemperature(evt->data.evt_gatt_server_user_read_request.connection,false);
+      }
+      else if(evt->data. evt_gatt_server_user_read_request.characteristic == gattdb_digital_0){
+                app_log_info("read IO \n");
+                app_sendDigitalIO(connection_id);
+            }
+      break;
+
+    case sl_bt_evt_gatt_server_characteristic_status_id:
+      connection_id=evt->data. evt_gatt_server_characteristic_status.connection;
+      if(evt->data. evt_gatt_server_characteristic_status.characteristic == gattdb_temperature){
+          if(evt->data. evt_gatt_server_characteristic_status.status_flags==sl_bt_gatt_server_client_config){
+                 app_log_info("client_config_flag = %d\n",evt->data. evt_gatt_server_characteristic_status.client_config_flags);
+                 if(evt->data. evt_gatt_server_characteristic_status.client_config_flags==1 || evt->data. evt_gatt_server_characteristic_status.client_config_flags==3){
+                     sl_sleeptimer_start_periodic_timer_ms(&handleTimer,1000,sl_sleeptimer_timer_callback,&timerData,1,0);
+                 }
+                 else{
+                     sl_sleeptimer_stop_timer(&handleTimer);
+                 }
+          }
+      }
+      break;
+
+    case sl_bt_evt_system_external_signal_id:
+      if(evt->data.evt_system_external_signal.extsignals== TEMPERATURE_TIMER_SIGNAL){
+          app_sendTemperature(connection_id,true);
+      }
+      break;
+
+    case sl_bt_evt_gatt_server_user_write_request_id :
+      if(evt->data.evt_gatt_server_user_write_request.characteristic== gattdb_digital_0){
+          app_updateVersionLedIO(evt,0);
+      }
+      break;
+
+    case sl_bt_cmd_gatt_write_characteristic_value_without_response_id:
+      if(evt->data.evt_gatt_server_user_write_request.characteristic== gattdb_digital_0){
+          app_updateVersionLedIO(evt,1);
       }
       break;
     ///////////////////////////////////////////////////////////////////////////
@@ -147,17 +194,78 @@ void sl_bt_on_event(sl_bt_msg_t *evt)
   }
 }
 
-void app_sendTemperature(uint8_t connection_id){
+void app_sendTemperature(uint8_t connection_id,bool funcToCall){
   int16_t valTemp=get_valTempFinal()*100;//mutiplier par 100 -> standard BLE
   uint8_t valTempToSend[2];
   valTempToSend[0]= valTemp&0x00ff;
   valTempToSend[1]= (valTemp>>8)&0xff;
   size_t lenVal= sizeof(valTempToSend);
-  sl_bt_gatt_server_send_user_read_response(connection_id,
+  if(funcToCall==false){
+      sl_bt_gatt_server_send_user_read_response(connection_id,
                                             gattdb_temperature,
                                             0,
                                             lenVal,
                                             valTempToSend,
                                             (uint16_t*)&lenVal
                                             );
+  }
+  else{
+      sl_bt_gatt_server_send_notification(connection_id,
+                                          gattdb_temperature,
+                                          lenVal,
+                                          valTempToSend
+                                          );
+  }
+}
+
+void sl_sleeptimer_timer_callback(sl_sleeptimer_timer_handle_t *handle, void *data){
+  (void)handle;
+  int* DataVal=(int*) data;
+  sl_bt_external_signal(TEMPERATURE_TIMER_SIGNAL);
+  (*DataVal)++;
+  app_log_info("Timer step %d \n",*DataVal);
+}
+
+
+void app_sendDigitalIO(uint8_t connection_id){
+  uint8_t valLed[2];
+  uint8_t ledstate= sl_simple_led_get_state(sl_led_led0.context);
+  //pour communique la valeur d'une IO il faut envoyer 1 ou 0 en caractère
+  if(ledstate==1){
+      valLed[0]='1';
+      valLed[1]=0;
+  }
+  else{
+      valLed[0]='0';
+      valLed[1]=0;
+  }
+  app_log_info("val Led state %d \n",valLed[0]);
+  size_t lenVal= sizeof(valLed);
+  sl_bt_gatt_server_send_user_read_response(connection_id,
+                                            gattdb_digital_0,
+                                             0,
+                                             lenVal,
+                                             valLed,
+                                             (uint16_t*)&lenVal
+                                             );
+}
+
+uint8_t app_RecupDataIO(uint8array *Val){
+  return *(Val->data+(Val->len)-1);
+}
+
+void app_updateVersionLedIO(sl_bt_msg_t *evt,char version){
+   connection_id=evt->data.evt_gatt_server_user_write_request.connection;
+   uint8_t valIO=app_RecupDataIO(&(evt->data.evt_gatt_server_user_write_request.value));
+   if(valIO==49){
+      sl_simple_led_turn_on(sl_led_led0.context);
+   }
+   else{
+      sl_simple_led_turn_off(sl_led_led0.context);
+   }
+   if(version==0){
+      app_log_info(" val to write affichage ASCII = %c \n",valIO);
+      app_log_info(" val to write affichage decimal = %u \n",valIO);
+      sl_bt_gatt_server_send_user_write_response(connection_id,gattdb_digital_0,0);
+   }
 }

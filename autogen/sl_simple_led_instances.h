@@ -1,9 +1,9 @@
 /***************************************************************************//**
  * @file
- * @brief Application interface provided to main().
+ * @brief LED Driver Instances
  *******************************************************************************
  * # License
- * <b>Copyright 2020 Silicon Laboratories Inc. www.silabs.com</b>
+ * <b>Copyright 2019 Silicon Laboratories Inc. www.silabs.com</b>
  *******************************************************************************
  *
  * SPDX-License-Identifier: Zlib
@@ -28,32 +28,18 @@
  *
  ******************************************************************************/
 
-#ifndef APP_H
-#define APP_H
+#ifndef SL_SIMPLE_LED_INSTANCES_H
+#define SL_SIMPLE_LED_INSTANCES_H
 
-#include <stdint.h>
-#include "sl_sleeptimer.h"
-#include "sl_bgapi.h"
-#include "sl_bt_api.h"
+#include "sl_simple_led.h"
 
-/**************************************************************************//**
- * Application Init.
- *****************************************************************************/
-void app_init(void);
+extern const sl_led_t sl_led_led0;
 
-/**************************************************************************//**
- * Application Process Action.
- *****************************************************************************/
-void app_process_action(void);
+extern const sl_led_t *sl_simple_led_array[];
 
-void app_sendTemperature(uint8_t connection_id,bool funcToCall);
+#define SL_SIMPLE_LED_COUNT 1
+#define SL_SIMPLE_LED_INSTANCE(n) (sl_simple_led_array[n])
 
-void sl_sleeptimer_timer_callback(sl_sleeptimer_timer_handle_t *handle, void *data);
+void sl_simple_led_init_instances(void);
 
-void app_sendDigitalIO(uint8_t connection_id);
-
-uint8_t app_RecupDataIO(uint8array *Val);
-
-void app_updateVersionLedIO(sl_bt_msg_t *evt,char version);
-
-#endif // APP_H
+#endif // SL_SIMPLE_LED_INIT_H
