@@ -21,8 +21,8 @@ double calc_temp(void){
   uint32_t valHumRaw;
   int32_t valTempRaw;
   sl_sensor_rht_get(&valHumRaw, &valTempRaw);
-  //une résolution de 0.01 est attendu donc conversion des mili celsius vers centi celsius
-  double valTemp= conv_val_sensor_toBLE(valTempRaw, 1,-2,0)/10;
+  //pour calcul une résolution de 0.01 est attendu donc conversion des mili celsius vers centi celsius => /10
+  double valTemp= conv_val_sensor_toBLE(valTempRaw, 1,-2,0)/10; // resultat en deg celsius
   valTempFinal=(int16_t) valTemp;
   return valTemp;
 }
