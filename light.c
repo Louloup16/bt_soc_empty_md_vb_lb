@@ -22,6 +22,8 @@ double calc_light(void){
   sl_sensor_light_get(&lux, &uvi);
   // pour calcul une résolution de 0.1 est attendu donc conversion des lux vers deci lux => *10
   double valLum= conv_val_sensor_toBLE(lux, 1,-1,0)*10; // resultat en lux
+  //conversion lux vers irradiance
+  valLum=valLum/(1*683);
   valLightFinal=(uint16_t) valLum;
   return valLum;
 }
